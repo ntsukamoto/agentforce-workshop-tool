@@ -1,0 +1,163 @@
+<template>
+    <lightning-tabset onactive={handleTabActive}>
+        <!-- タブ1: 求人票を作成 -->
+        <lightning-tab label="求人票を作成" value="create">
+            <section class="slds-card slds-p-around_medium card-wrap">
+                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_medium">
+                    <div class="slds-col">
+                        <h2 class="slds-text-heading_medium slds-m-bottom_x-small">AIエージェント求人票 作成</h2>
+                        <p class="slds-text-color_weak">エージェントの文脈を確認しながら、右側で求人票を入力してください。</p>
+                    </div>
+                </div>
+
+                <!-- 上部: エージェント選択（ルックアップ） -->
+                <div class="slds-m-bottom_medium">
+                    <lightning-record-picker
+                        object-api-name="agentforcews__c"
+                        label="元になるエージェントのアイデアを検索"
+                        placeholder="エージェント名で検索..."
+                        value={selectedAgentId}
+                        onchange={handleAgentSelect}
+                        fields="Name,target__c,pain__c,agentrole__c"
+                    >
+                    </lightning-record-picker>
+                </div>
+
+                <!-- 2カラム: 左=コンテキスト 右=求人票入力 -->
+                <div class="two-col">
+                    <!-- 左: 参照情報 -->
+                    <div class="col left">
+                        <div class="slds-card slds-p-around_medium slds-var-p-around_medium context-panel">
+                            <div class="slds-text-title_caps slds-m-bottom_small">コンテキスト</div>
+                            <template if:true={selectedAgentId}>
+                                <dl class="dl-grid">
+                                    <dt>ターゲット</dt>
+                                    <dd>{selectedAgentContext.target}</dd>
+                                    <dt>課題</dt>
+                                    <dd>{selectedAgentContext.pain}</dd>
+                                    <dt>期待（役割）</dt>
+                                    <dd>{selectedAgentContext.agentrole}</dd>
+                                </dl>
+                            </template>
+                            <template if:false={selectedAgentId}>
+                                <div class="slds-text-color_weak">エージェントを選択すると、ここに文脈が表示されます。</div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- 右: 求人票入力フォーム -->
+                    <div class="col right">
+                        <lightning-record-edit-form
+                            object-api-name="agentjd__c"
+                            onsuccess={handleCreateSuccess}
+                            onerror={handleError}
+                        >
+                            <!-- hidden agentforcews__c -->
+                            <lightning-input-field field-name="agentforcews__c" value={selectedAgentId} class="slds-hide"></lightning-input-field>
+                            <!-- Name (エージェント愛称) -->
+                            <lightning-input-field field-name="Name"></lightning-input-field>
+                            <!-- Job content -->
+                            <lightning-input-field field-name="job_content__c"></lightning-input-field>
+                            <lightning-input-field field-name="job_scope__c"></lightning-input-field>
+                            <lightning-input-field field-name="required_skills__c"></lightning-input-field>
+                            <lightning-input-field field-name="preferred_skills__c"></lightning-input-field>
+                            <lightning-input-field field-name="work_time__c"></lightning-input-field>
+                            <lightning-input-field field-name="data_knowledge__c"></lightning-input-field>
+                            <lightning-input-field field-name="expected_effect__c"></lightning-input-field>
+
+                            <div class="slds-m-top_medium slds-text-align_right">
+                                <lightning-button
+                                    variant="brand"
+                                    label="求人票を公開（保存）"
+                                    type="submit"
+                                    disabled={isSaveDisabled}
+                                ></lightning-button>
+                                <lightning-button
+                                    class="slds-m-left_small"
+                                    variant="neutral"
+                                    label="リセット"
+                                    onclick={resetForm}
+                                ></lightning-button>
+                            </div>
+                        </lightning-record-edit-form>
+                    </div>
+                </div>
+            </section>
+        </lightning-tab>
+
+        <!-- タブ2: 求人票を見る -->
+        <lightning-tab label="求人票を見る" value="view">
+            <section class="slds-card slds-p-around_medium preview-wrap">
+                <!-- 上部: 求人票選択（ルックアップ） -->
+                <div class="slds-m-bottom_medium">
+                    <lightning-record-picker
+                        object-api-name="agentjd__c"
+                        label="作成済みの求人票を検索"
+                        placeholder="求人票のタイトルで検索..."
+                        value={selectedJdId}
+                        onchange={handleJobSelect}
+                        fields="Name"
+                    >
+                    </lightning-record-picker>
+                </div>
+
+                <!-- 下部: プレビュー -->
+                <template if:true={selectedJdId}>
+                    <template if:true={isDataLoaded}>
+                        <div class="jd-container slds-card slds-p-around_none">
+                            <header class="jd-header">
+                                <div class="jd-title">
+                                    <div class="title">AIエージェント求人情報</div>
+                                    <div class="subtitle">{job.name}</div>
+                                </div>
+                                <div class="avatar">
+                                    <lightning-icon icon-name="standard:scan_card" size="large" alternative-text="Avatar"></lightning-icon>
+                                </div>
+                            </header>
+
+                            <div class="jd-body slds-p-around_large">
+                                <div class="section">
+                                    <h3 class="section-title">基本情報</h3>
+                                    <dl class="dl-grid paper">
+                                        <dt>職務内容</dt>
+                                        <dd><lightning-formatted-rich-text value={job.jobContent}></lightning-formatted-rich-text></dd>
+                                        <dt>業務範囲</dt>
+                                        <dd><lightning-formatted-rich-text value={job.jobScope}></lightning-formatted-rich-text></dd>
+                                    </dl>
+                                </div>
+
+                                <div class="section">
+                                    <h3 class="section-title">スキル</h3>
+                                    <dl class="dl-grid paper">
+                                        <dt>必須スキル</dt>
+                                        <dd><lightning-formatted-rich-text value={job.requiredSkills}></lightning-formatted-rich-text></dd>
+                                        <dt>歓迎スキル</dt>
+                                        <dd><lightning-formatted-rich-text value={job.preferredSkills}></lightning-formatted-rich-text></dd>
+                                    </dl>
+                                </div>
+
+                                <div class="section">
+                                    <h3 class="section-title">勤務 / ナレッジ</h3>
+                                    <dl class="dl-grid paper">
+                                        <dt>勤務時間</dt>
+                                        <dd><lightning-formatted-rich-text value={job.workTime}></lightning-formatted-rich-text></dd>
+                                        <dt>データやナレッジ</dt>
+                                        <dd><lightning-formatted-rich-text value={job.dataKnowledge}></lightning-formatted-rich-text></dd>
+                                    </dl>
+                                </div>
+
+                                <div class="section">
+                                    <h3 class="section-title">想定効果</h3>
+                                    <dl class="dl-grid paper">
+                                        <dt>期待される効果</dt>
+                                        <dd><lightning-formatted-rich-text value={job.expectedEffect}></lightning-formatted-rich-text></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </section>
+        </lightning-tab>
+    </lightning-tabset>
+</template>

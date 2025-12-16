@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>60.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>AIエージェント求人票作成・表示</masterLabel>
+    <description>エージェント検討（agentforcews__c）から文脈を参照しつつ、エージェント求人票（agentjd__c）を作成・公開・表示します。</description>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>agentforcews__c</object>
+                <object>agentjd__c</object>
+            </objects>
+        </targetConfig>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="selectedAgentId" type="String" role="inputOnly" label="選択済み agentforcews__c Id (任意)"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
