@@ -9,6 +9,7 @@
         <!-- Custom Tabs discovered in TabDefinition -->
         <!-- custom object tab -->
         <members>agentforcews__c</members>
+        <members>agentjd__c</members>
         <!-- custom web/Lightning tabs -->
         <members>Agentforce</members>
         <members>Agentforce_Workshop</members>
